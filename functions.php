@@ -1,8 +1,4 @@
 <?php
-  require_once 'js.js';
-?>
-
-<?php
 // =====================================================================
 //   显示html模块
 // =====================================================================
@@ -121,20 +117,18 @@
       exit();
     }
     echo "<tr>";
-    foreach ($book as $row) {
-      $url = "show_book.php?isbn=".$row['isbn'];
-      $title = $row['title'];
-      $size = change_image_size($row['isbn']);
-      echo "<td><img src=./images/".$row['isbn'].".jpg width=".($size[0])." height=".($size[1])." /></td>";
+      $url = "show_book.php?isbn=".$book['isbn'];
+      $title = $book['title'];
+      $size = change_image_size($book['isbn']);
+      echo "<td><img src=./images/".$book['isbn'].".jpg width=".($size[0])." height=".($size[1])." /></td>";
       echo "<td>";
       echo "<ul>";
-      echo "<li>作者：".$row['author']."</li>";
-      echo "<li>ISBN：".$row['isbn']."</li>";
-      echo "<li>价格：".$row['price']."</li>";
-      echo "<li>描述：".$row['description']."</li>";
+      echo "<li>作者：".$book['author']."</li>";
+      echo "<li>ISBN：".$book['isbn']."</li>";
+      echo "<li>价格：".$book['price']."</li>";
+      echo "<li>描述：".$book['description']."</li>";
       echo "</ul>";
       echo "</td>";
-    }
     echo "</tr>";
   }
 ?>
@@ -240,9 +234,10 @@
     $db = db_connect();
     $query = "select * from books where isbn='".$isbn."'";
     $result = $db->query($query);
+    $books = array();
     if ($result->num_rows > 0) {
       for ($i=0; $row = $result->fetch_assoc(); $i++) { 
-        $books[$i] = $row;        
+        $books = $row;        //怎样赋值变成一维数组
       }
       return $books;
     }else{

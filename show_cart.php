@@ -4,7 +4,6 @@
 
   $new = $_GET['new'];
 
-  do_html_header("购物车");
 
   if (!isset($_SESSION['cart'])) {
   	$_SESSION['cart'] = array();
@@ -21,6 +20,14 @@
   $_SESSION['total_price'] = calculate_price($_SESSION['cart']);
   $_SESSION['items'] = calculate_items($_SESSION['cart']);
 
+
+  do_html_header("购物车");
+
+  if ($_SESSION['cart'] && array_count_values($_SESSION['cart'])) {
+    display_cart($_SESSION['cart']);
+  }else{
+    echo "还没有商品添加到购物车";
+  }
 
   do_html_top();
 
