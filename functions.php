@@ -44,9 +44,9 @@
   <div class="col-xs-6 col-md-4">
     <span><a href="login.php">登录</a></span>
     <span><a href="register.php">注册</a></span>
-    <p>总数量=</p>
-    <p>总金额=</p>
-    <strong>查看购物车</strong>
+    <p>总数量= <?php echo $_SESSION['items'] ?></p>
+    <p>总金额= <?php echo $_SESSION['total_price'] ?></p>
+    <strong><a href="show_cart.php">查看购物车</a></strong>
   </div>
 </div>
  <?php    
@@ -137,14 +137,174 @@
 
   <?php
 // 显示按钮
-  function display_button($isbn,$value){
+  function display_button($target,$title){
     ?>
-   <input type="button" class="btn btn-primary btn-lg btn-danger" onclick="javascript:window.location.href='show_cart.php?new=<?php echo $isbn ?>'" value="<?php echo $value ?>" />
-     
+    <div align="center">
+   <input type="button" class="btn btn-primary btn-lg btn-danger" onclick="javascript:window.location.href='<?php echo $target?>'" value="<?php echo $title ?>" />  
+   </div>   
   <?php
   }
-
 ?>
+
+
+  <?php
+// 显示购物车的详细信息
+  function display_cart($cart,$modify = true){  
+    if (is_array($cart)) {
+  ?>
+  <div class="row">
+  <div class="col-md-8">
+  <table class="table table-striped" >
+  <form action="show_cart.php" method="post">
+    <tr>
+      <th colspan="2" align="right">商品名称</th>
+      <th>单价</th>
+      <th>数量</th>
+      <th>总价</th>
+    </tr>
+    <?php
+        foreach ($cart as $isbn => $qty) {
+          $db = db_connect();
+          $query = "select title,price from books where isbn = '".$isbn."'";
+          $result = $db->query($query);
+          $size = change_image_size($isbn);
+          if ($result->num_rows > 0) {
+            for ($i=0; $row = $result->fetch_assoc(); $i++) { 
+              $books[$i] = $row;
+      ?>
+      <tr>
+        <td><img src="./images/<?php echo $isbn ?>.jpg" alt="<?php echo $books[$i]['title'] ?>" 
+        width="<?php echo ($size[0]/8)?>" height="<?php echo ($size[1]/8)?>"></td>
+        <td style="vertical-align:middle"><?php echo $books[$i]['title'] ?></td>
+        <td style="vertical-align:middle">￥<?php echo $books[$i]['price'] ?></td>
+        <?php 
+        if($modify == true){
+        ?>
+        <td style="vertical-align:middle"><input type="text" name="<?php echo $isbn ?>" value="<?php echo $qty ?>" size="3"/></td>
+        <?php 
+         }else{
+          echo "<td style='vertical-align:middle'>".$qty."</td>";
+          }
+          ?>
+        <td style="vertical-align:middle">￥<?php echo $books[$i]['price']*$qty ?></td>
+      </tr>
+      <?php 
+            }
+          }
+        }
+        ?>
+      <tr class="success">
+        <th colspan="3"></th>
+        <th><?php echo $_SESSION['items']?></th>
+        <th>￥<?php echo $_SESSION['total_price']?></th>
+      </tr>
+      <tr>
+        <td colspan="3"></td>
+        <td>
+        <?php 
+        if($modify == true){
+        ?>
+          <input type="submit" name="submit" value="保存修改数量">
+        <?php 
+         }else{
+          
+          }
+          ?>
+        </td>
+
+      </tr>
+  </form>
+  </table>
+  </div>
+  </div>
+      <?php
+    }
+  }
+?>
+
+
+
+  <?php
+    function display_checkout_form(){
+  ?>
+      <div class="row">
+       <div class="col-md-8">       
+        <table class="table" align="center">
+      <form action="purchase.php" method="post">
+        <tr>
+          <th colspan="2" class="active">您的信息</th>
+        </tr>
+        <tr>
+          <td>姓名</td>
+          <td><input type="text" name="user_name"></td>
+        </tr>
+        <tr>
+          <td>地址</td>
+          <td><input type="text" name="user_address"></td>
+        </tr>
+        <tr>
+          <td>城市</td>
+          <td><input type="text" name="user_city"></td>
+        </tr>
+        <tr>
+          <td>省</td>
+          <td><input type="text" name="user_province"></td>
+        </tr>
+        <tr>
+          <td>邮编</td>
+          <td><input type="text" name="user_zip"></td>
+        </tr>
+        <tr>
+          <td>国家</td>
+          <td><input type="text" name="user_country"></td>
+        </tr>
+        <tr>
+          <th colspan="2" class="active">收货地址</th>
+        </tr>
+                <tr>
+          <td>姓名</td>
+          <td><input type="text" name="name"></td>
+        </tr>
+        <tr>
+          <td>地址</td>
+          <td><input type="text" name="address"></td>
+        </tr>
+        <tr>
+          <td>城市</td>
+          <td><input type="text" name="city"></td>
+        </tr>
+        <tr>
+          <td>省</td>
+          <td><input type="text" name="province"></td>
+        </tr>
+        <tr>
+          <td>邮编</td>
+          <td><input type="text" name="zip"></td>
+        </tr>
+        <tr>
+          <td>国家</td>
+          <td><input type="text" name="country"></td>
+        </tr>
+        <tr>
+          <th colspan="2"><input type="submit" name="submit" value="支付"></th>
+        </tr>        
+      </form>
+    </table>
+    </div>
+    </div>
+  <?php
+    }
+  ?>
+
+
+  <?php
+  function display_checkout_form(){
+  ?>
+    
+  <?php
+  }
+  ?>
+
 
 
 
@@ -245,6 +405,33 @@
     }
    }
 
+
+//计算购物车里商品总价
+   function calculate_price($cart){
+    $db = db_connect();
+    $total_prices = 0.00;
+    foreach ($cart as $isbn => $qty) {
+      $query = "select price from books where isbn = '".$isbn."'";
+      $result = $db->query($query);
+      $price = $result->fetch_assoc();
+      $prices = $price['price'] * $qty;
+      $total_prices += $prices;
+    }
+    return $total_prices;
+   }
+
+
+
+
+//计算购物车里商品总数量
+   function calculate_items($cart){
+    $db = db_connect();
+    $total_qty = 0;
+    foreach ($cart as $isbn => $qty) {
+      $total_qty += $qty;
+    }
+    return $total_qty;
+   }
 
 
  ?>

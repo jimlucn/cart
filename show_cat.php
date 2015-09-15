@@ -1,5 +1,8 @@
 <?php
   require_once 'functions.php';
+
+  session_start();
+  
   $catid = $_GET['catid'];
 
   $name = get_category_name($catid);

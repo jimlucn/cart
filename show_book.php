@@ -12,7 +12,9 @@
 
   display_book_details($book);
 
-  display_button($isbn,'加入购物车');
+  $target = "show_cart.php?new=".$isbn;
+
+  display_button($target,'加入购物车');
 
   do_html_footer();
 ?>
