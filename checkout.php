@@ -2,7 +2,7 @@
   require_once 'functions.php';
   session_start();
 
-  do_html_header('结算');
+  do_html_header('提交订单');
 
   do_html_top();
 

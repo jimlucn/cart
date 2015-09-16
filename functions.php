@@ -31,7 +31,6 @@
  ?>
 
 
-
  <?php
 //显示html顶部
    function do_html_top(){  
@@ -108,7 +107,6 @@
 ?>
 
 
-
   <?php
 // 显示图书的详细信息
   function display_book_details($book){  
@@ -134,7 +132,6 @@
 ?>
 
 
-
   <?php
 // 显示按钮
   function display_button($target,$title){
@@ -149,7 +146,7 @@
 
   <?php
 // 显示购物车的详细信息
-  function display_cart($cart,$modify = true){  
+  function display_cart($cart,$modify = true,$shipping = false,$total = false){  
     if (is_array($cart)) {
   ?>
   <div class="row">
@@ -186,7 +183,7 @@
           echo "<td style='vertical-align:middle'>".$qty."</td>";
           }
           ?>
-        <td style="vertical-align:middle">￥<?php echo $books[$i]['price']*$qty ?></td>
+        <td style="vertical-align:middle">￥<?php echo number_format($books[$i]['price']*$qty,2) ?></td>
       </tr>
       <?php 
             }
@@ -207,12 +204,39 @@
           <input type="submit" name="submit" value="保存修改数量">
         <?php 
          }else{
-          
           }
           ?>
         </td>
-
+        <td></td>
       </tr>
+      <?php 
+        if($shipping == true){
+        ?>
+      <tr>
+        <td colspan="4">          
+          运费
+        </td>
+        <td>
+        ￥20.00
+        </td>
+      </tr>
+        <?php 
+        }
+        ?>
+       <?php 
+        if($total == true){
+        ?>
+      <tr class="success">
+        <td colspan="4">          
+          总价含运费
+        </td>
+        <td>￥
+        <?php echo number_format(($_SESSION['total_price']+20),2);?>
+        </td>
+      </tr>
+        <?php 
+        }
+        ?>
   </form>
   </table>
   </div>
@@ -221,7 +245,6 @@
     }
   }
 ?>
-
 
 
   <?php
@@ -236,33 +259,6 @@
         </tr>
         <tr>
           <td>姓名</td>
-          <td><input type="text" name="user_name"></td>
-        </tr>
-        <tr>
-          <td>地址</td>
-          <td><input type="text" name="user_address"></td>
-        </tr>
-        <tr>
-          <td>城市</td>
-          <td><input type="text" name="user_city"></td>
-        </tr>
-        <tr>
-          <td>省</td>
-          <td><input type="text" name="user_province"></td>
-        </tr>
-        <tr>
-          <td>邮编</td>
-          <td><input type="text" name="user_zip"></td>
-        </tr>
-        <tr>
-          <td>国家</td>
-          <td><input type="text" name="user_country"></td>
-        </tr>
-        <tr>
-          <th colspan="2" class="active">收货地址</th>
-        </tr>
-                <tr>
-          <td>姓名</td>
           <td><input type="text" name="name"></td>
         </tr>
         <tr>
@@ -275,7 +271,7 @@
         </tr>
         <tr>
           <td>省</td>
-          <td><input type="text" name="province"></td>
+          <td><input type="text" name="state"></td>
         </tr>
         <tr>
           <td>邮编</td>
@@ -286,7 +282,34 @@
           <td><input type="text" name="country"></td>
         </tr>
         <tr>
-          <th colspan="2"><input type="submit" name="submit" value="支付"></th>
+          <th colspan="2" class="active">收货地址</th>
+        </tr>
+                <tr>
+          <td>姓名</td>
+          <td><input type="text" name="ship_name"></td>
+        </tr>
+        <tr>
+          <td>地址</td>
+          <td><input type="text" name="ship_address"></td>
+        </tr>
+        <tr>
+          <td>城市</td>
+          <td><input type="text" name="ship_city"></td>
+        </tr>
+        <tr>
+          <td>省</td>
+          <td><input type="text" name="ship_state"></td>
+        </tr>
+        <tr>
+          <td>邮编</td>
+          <td><input type="text" name="ship_zip"></td>
+        </tr>
+        <tr>
+          <td>国家</td>
+          <td><input type="text" name="ship_country"></td>
+        </tr>
+        <tr>
+          <th colspan="2"><input type="submit" name="submit" value="提交订单"></th>
         </tr>        
       </form>
     </table>
@@ -295,10 +318,14 @@
   <?php
     }
   ?>
+  
 
+
+
+    
 
   <?php
-  function display_checkout_form(){
+  function display_card_form(){
   ?>
     
   <?php
@@ -344,8 +371,8 @@
     }else{
       return false;
     }
-
    }
+
 
 //获取类目名称
    function get_category_name($catid){
@@ -378,6 +405,7 @@
       return false;
     }
    }
+
 
 //获取图片长宽
    function change_image_size($isbn){
@@ -417,10 +445,8 @@
       $prices = $price['price'] * $qty;
       $total_prices += $prices;
     }
-    return $total_prices;
+    return number_format($total_prices,2);
    }
-
-
 
 
 //计算购物车里商品总数量
@@ -434,4 +460,86 @@
    }
 
 
+//讲订单信息写入数据库
+   function insert_order($order_details){
+
+    extract($order_details);
+
+    if ((!$ship_name)&&(!$ship_address)&&(!$ship_city)&&(!$ship_state)&&(!$ship_zip)&&(!$ship_country)) {
+      $ship_name = $name;
+      $ship_address = $address;
+      $ship_city = $city;
+      $ship_state = $state;
+      $ship_zip = $zip;
+      $ship_country = $country;
+    }
+
+    $db = db_connect();
+
+    $db->autocommit(false);
+
+    $query = "select customerid from customers where name='".$name."' and address='".$address."' and city='".$city."'
+              and state='".$state."' and zip='".$zip."' and country='".$country."'";
+
+    $result = $db->query($query);
+
+    if ($result->num_rows > 0) {
+      $row = $result->fetch_assoc();
+      $customerid = $row['customerid'];
+    }else{
+      $query = "insert into customers values('','".$name."','".$address."','".$city."','".$state."','".$zip."','".$country."')";
+      $result = $db->query($query);
+      if (!$result) {
+        echo "插入用户表失败";
+        exit();
+        return false;
+      }
+      $customerid = $db->insert_id;
+    }
+    $date =date("Y-m-d");
+
+    $query = "insert into orders values('','".$customerid."','".$_SESSION['total_price']."','".$date."','PARTIAL','".$ship_name."',
+              '".$ship_address."','".$ship_city."','".$ship_state."','".$ship_zip."','".$ship_country."')";
+    $result = $db->query($query);
+    if (!$result) {
+      print_r($customerid);
+      print_r($_SESSION['total_price']);
+      print_r($date);
+      print_r($ship_address);
+      print_r($ship_city);
+      print_r($ship_state);
+      print_r($ship_zip);
+      print_r($ship_country);
+      echo "插入订单表失败";
+        exit();
+      return false;
+    }
+    $orderid = $db->insert_id;
+
+    foreach ($_SESSION['cart'] as $isbn => $qty) {
+      $book_details = get_book_details($isbn);
+      $query = "delete from order_items where orderid='".$orderid."' and isbn='".$isbn."'";
+      $result = $db->query($query);
+      if (!$result) {
+        echo "删除订单商品表失败";
+        exit();
+        return false;
+      }
+      $query = "insert into order_items values('".$orderid."','".$isbn."','".$book_details['price']."','".$qty."')";
+      $result = $db->query($query);
+      if (!$result) {
+        print_r($orderid);
+        echo "插入订单商品表失败";
+        exit();
+        return false;
+      }
+    }
+
+    $db->commit();
+
+    $db->autocommit(true);
+
+    return $orderid;
+
+   }
  ?>

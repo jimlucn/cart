@@ -8,7 +8,7 @@
   	if (!isset($_SESSION['cart'])) {
   	$_SESSION['cart'] = array();
   	$_SESSION['items'] = 0;
-  	$_SESSION['total_price'] = '0.00';
+  	$_SESSION['total_price'] = 0.00;
     }
 
     if (isset($_SESSION['cart'][$new])) {
@@ -43,11 +43,12 @@
 
   if ($_SESSION['cart'] && array_count_values($_SESSION['cart'])) {
     display_cart($_SESSION['cart'],true);
+    display_button('checkout.php','结算');
   }else{
     echo "还没有商品添加到购物车";
   }  
 
-  display_button('checkout.php','结算');
+  
 
   do_html_footer();
 
