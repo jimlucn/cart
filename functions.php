@@ -41,8 +41,17 @@
   <h1><a href="index.php">Rama网上书店</a></h1>
   </div>
   <div class="col-xs-6 col-md-4">
+  <?php
+  if ($_SESSION['valid_user']) {
+    echo "欢迎您，".$_SESSION['valid_user'];
+    echo "<a href='logout.php'>退出</a>";
+  }else{
+  ?>
     <span><a href="login.php">登录</a></span>
     <span><a href="register.php">注册</a></span>
+    <?php
+    }
+    ?>
     <p>总数量= <?php echo $_SESSION['items'] ?></p>
     <p>总金额= <?php echo $_SESSION['total_price'] ?></p>
     <strong><a href="show_cart.php">查看购物车</a></strong>
@@ -325,13 +334,149 @@
     
 
   <?php
-  function display_card_form(){
+  function display_card_form($order_info){
   ?>
-    
+  <div class="row">
+    <div class="col-md-8">
+    <table class="table">
+      <form action="process.php" method="post">
+        <tr align="center">
+          <th colspan="2" >信用卡信息</th>
+        </tr>
+        <tr>
+          <td>卡类型</td>
+          <td>
+            <select name="type">
+              <option value="VISA" selected="selected">VISA</option>
+              <option value="MASTERCARD">MASTERCARD</option>
+              <option value="UNIONPAY" >UNIONPAY</option>
+              <option value="PAYPAL">PAYPAL</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td>卡号</td>
+          <td><input type="text" name="number"></td>
+        </tr>
+        <tr>
+          <td>三位验证码</td>
+          <td><input type="text" name="secure_number" size="3"></td>
+        </tr>
+        <tr>
+          <td>有效期</td>
+          <td>月
+            <select name="month">
+              <option value="1">01</option>
+              <option value="2">02</option>
+              <option value="3">03</option>
+              <option value="5">04</option>
+              <option value="6">04</option>
+              <option value="7">04</option>
+              <option value="8">04</option>
+              <option value="9">04</option>
+              <option value="10">04</option>
+              <option value="11">04</option>
+              <option value="12">04</option>
+            </select>
+            年
+              <select name="year">
+              <option value="2016">2016</option>
+              <option value="2017">2017</option>
+              <option value="2018">2018</option>
+              <option value="2019">2019</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td>持卡人姓名</td>
+          <td><input type="text" name="name"></td>
+        </tr>
+        <tr align="center">
+          <td colspan="2">
+            <input type="submit" name="submit" value="支付" class="btn btn-danger">
+            <input type="hidden" name="order_info_customerid" value="<?php echo $order_info[0] ?>">
+            <input type="hidden" name="order_info_orderid" value="<?php echo $order_info[1] ?>">
+          </td>
+        </tr>        
+      </form>
+    </table>
+    </div>
+  </div>
   <?php
   }
   ?>
 
+<?php
+    function display_login_form(){
+?>
+      <div class="row">
+        <div class="col-md-3">
+          <table class="table">
+            <form action="member.php" method="post">
+              <tr>
+                <td>用户名</td>
+                <td><input type="text" name="username" placeholder="邮箱/手机号"></td>
+              </tr>
+              <tr>
+                <td>密码</td>
+                <td><input type="password" name="password" placeholder="密码"></td>
+              </tr>
+              <tr>                
+                <td colspan="2"><input type="submit" name="submit" value="登录"></td>
+              </tr>
+            </form>
+          </table>
+        </div>
+      </div>
+<?php
+    }
+?>
+
+
+<?php
+    function display_register_form(){
+?>
+      <div class="row">
+        <div class="col-md-3">
+          <table class="table">
+            <form action="register_new.php" method="post">
+              <tr>
+                <td>用户名</td>
+                <td><input type="text" name="username" placeholder="邮箱/手机号"></td>
+              </tr>
+              <tr>
+                <td>密码</td>
+                <td><input type="password" name="password1" placeholder="密码"></td>
+              </tr>
+              <tr>
+                <td>重复密码</td>
+                <td><input type="password" name="password2" placeholder="重复密码"></td>
+              </tr>
+              <tr>
+                <td>邮箱</td>
+                <td><input type="text" name="email" placeholder="邮箱地址"></td>
+              </tr>
+              <tr>
+                <td>手机号</td>
+                <td><input type="text" name="cellphone" placeholder="手机号"></td>
+              </tr>
+              <tr>                
+                <td colspan="2"><input type="submit" name="submit" value="注册"></td>
+              </tr>
+            </form>
+          </table>
+        </div>
+      </div>
+<?php
+    }
+?>
 
 
 
@@ -498,7 +643,7 @@
     }
     $date =date("Y-m-d");
 
-    $query = "insert into orders values('','".$customerid."','".$_SESSION['total_price']."','".$date."','PARTIAL','".$ship_name."',
+    $query = "insert into orders values('','".$customerid."','".$_SESSION['total_price']."','".$date."','UNPAYED','".$ship_name."',
               '".$ship_address."','".$ship_city."','".$ship_state."','".$ship_zip."','".$ship_country."')";
     $result = $db->query($query);
     if (!$result) {
@@ -539,7 +684,82 @@
 
     $db->autocommit(true);
 
-    return $orderid;
+    $order_info = array($customerid,$orderid);
 
+    return $order_info;
+
+   }
+
+
+   function query_order_pay($order_info_orderid){
+    $db = db_connect();
+    $query = "select order_status from orders where orderid='".$order_info_orderid."'";
+    $result = $db->query($query);
+    if ($result->num_rows > 0) {
+      $row = $result->fetch_assoc();
+    }
+    return $row['order_status'];
+   }
+
+
+   function process_card(){
+    return true;
+   }
+
+
+   function change_order_status($order_info_orderid){
+    $db = db_connect();
+    $query = "update orders set order_status='PAYED'where orderid='".$order_info_orderid."'";
+    $result = $db->query($query);
+    if ($result) {
+      echo "支付状态更改成功！<br>";
+    }
+   }
+
+
+   function check_valid_user(){
+    if (isset($_SESSION['valid_user'])) {
+      echo "欢迎您，".$_SESSION['valid_user']."<br>";
+    }else{
+      do_html_header("出错了:");
+      do_html_url('login.php','您还没有登录，请先登录');
+      do_html_footer();
+      exit();
+    }
+   }
+
+
+    function register($username, $email, $password1,$cellphone){
+    //这里不能引用conn.php，再调用$db->query(),会提示错误
+     $db = db_connect();
+     $query = "insert into users values('','".$username."','".$password1."','".$email."','".$cellphone."')";
+     //$query = "insert into user values('$username','$password1','$email')";
+     $result = $db->query($query);
+    if ($result) {
+      echo $db->affected_rows."data inserted.";
+    }else{
+      echo "insert data failure.";
+    }
+    $db->close();
+   }
+
+
+    function filled_out($form_vars){ //验证注册表单是否填写完整
+    foreach ($form_vars as $key => $value) {
+      if (!isset($key) || $value == '') {
+        return flase;         
+      }
+      return true;
+    }
+
+   }
+
+
+    function vaild_email($email){
+    if (preg_match("/^[a-zA-Z0-9_\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$/",$email)) {
+      return true;
+    }else{
+      return flase;
+    }
    }
  ?>
