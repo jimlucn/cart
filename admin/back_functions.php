@@ -38,23 +38,15 @@
 <!DOCTYPE html>
 <div class="row">
   <div class="col-xs-12 col-md-8">
-  <h1><a href="index.php">Rama网上书店</a></h1>
+  <h1><a href="index.php">Rama网上书店管理系统</a></h1>
   </div>
   <div class="col-xs-6 col-md-4">
   <?php
-  if ($_SESSION['valid_user']) {
-    echo "欢迎您，".$_SESSION['valid_user'];
+  if ($_SESSION['admin_user']) {
+    echo "欢迎您，".$_SESSION['admin_user'];
     echo "<a href='logout.php'>退出</a>";
-  }else{
-  ?>
-    <span><a href="login.php">登录</a></span>
-    <span><a href="register.php">注册</a></span>
-    <?php
-    }
+  }
     ?>
-    <p>总数量= <?php echo $_SESSION['items'] ?></p>
-    <p>总金额= <?php echo $_SESSION['total_price'] ?></p>
-    <strong><a href="show_cart.php">查看购物车</a></strong>
   </div>
 </div>
  <?php    
@@ -401,7 +393,7 @@
         <tr align="center">
           <td colspan="2">
             <input type="submit" name="submit" value="支付" class="btn btn-danger">
-            <input type="hidden" name="order_info_userid" value="<?php echo $order_info[0] ?>">
+            <input type="hidden" name="order_info_customerid" value="<?php echo $order_info[0] ?>">
             <input type="hidden" name="order_info_orderid" value="<?php echo $order_info[1] ?>">
           </td>
         </tr>        
@@ -419,7 +411,7 @@
       <div class="row">
         <div class="col-md-3">
           <table class="table">
-            <form action="member.php" method="post">
+            <form action="index.php" method="post">
               <tr>
                 <td>用户名</td>
                 <td><input type="text" name="username" placeholder="邮箱/手机号"></td>
@@ -477,6 +469,112 @@
 <?php
     }
 ?>
+
+
+     <?php
+       function display_admin_menu(){       
+     ?>
+     <div class="row">
+       <div class="col-md-3">
+         <ul>
+           <li> <a href="order.php">订单管理</a></li>
+           <li> <a href="user.php">用户管理</a></li>
+           <li> <a href="###">类目管理</a></li>
+           <li> <a href="###">图书管理</a></li>
+           <li> <a href="###">修改信息</a></li>
+         </ul>
+       </div>
+     
+     <?php
+     }
+     ?>
+
+
+
+    <?php
+       function display_order(){
+       $db = db_connect();
+       $query = "select * from orders";
+       $result = $db->query($query);
+       $num_result = $result->num_rows;       
+     ?>
+       <div class="col-md-9">
+         <table class="table">
+           <tr>
+             <th>订单号</th>
+             <th>用户信息</th>
+             <th>商品信息</th>
+             <th>订单总额</th>
+             <th>收货人</th>
+             <th>收货地址</th>
+             <th>下单时间</th>
+             <th>付款状态</th>
+           </tr>           
+             <?php
+             for ($i=0; $row = $result->fetch_assoc(); $i++) { 
+               echo "<tr>";
+               echo "<td>".$row['orderid']."</td>";
+               $username = find_username($row['userid']);
+               echo "<td>".$username."</td>";
+               $query = "select isbn,item_price,quantity from order_items where orderid='".$row['orderid']."'";
+               $result2 = $db->query($query);
+               echo "<td>";
+               for ($i=0; $row2 = $result2->fetch_assoc() ; $i++) { 
+                 $book = get_book_details($row2['isbn']);
+                 echo $book['title']."=".$row2['item_price']."(元) * ".$row2['quantity'];
+                 echo "<br>";
+               }
+               echo "</td>";
+               echo "<td>".$row['amount']."</td>";
+               echo "<td>".$row['ship_name']."</td>";
+               echo "<td>".$row['ship_country'].$row['ship_state'].$row['ship_city'].$row['ship_address'].",".$row['ship_zip']."</td>";
+               echo "<td>".$row['date']."</td>";
+               echo "<td>".$row['order_status']."</td>";
+               echo "</tr>";
+             }
+             ?>           
+         </table>
+       </div>
+      </div>
+     
+     <?php
+     }
+     ?>
+
+
+
+     <?php
+       function display_user(){
+       $db = db_connect();
+       $query = "select * from users";
+       $result = $db->query($query);
+       $num_result = $result->num_rows;       
+     ?>
+       <div class="col-md-9">
+         <table class="table">
+           <tr>
+             <th>用户ID</th>
+             <th>用户名</th>
+             <th>邮箱</th>
+             <th>手机</th>
+           </tr>           
+             <?php
+             for ($i=0; $row = $result->fetch_assoc(); $i++) { 
+               echo "<tr>";
+               echo "<td>".$row['userid']."</td>";
+               echo "<td>".$row['username']."</td>";
+               echo "<td>".$row['email']."</td>";
+               echo "<td>".$row['cellphone']."</td>";
+               echo "</tr>";
+             }
+             ?>           
+         </table>
+       </div>
+      </div>
+     
+     <?php
+     }
+     ?>
 
 
 
@@ -605,20 +703,8 @@
    }
 
 
-   function find_userid($username){
-    $db = db_connect();
-    $query = "select userid from users where username='".$username."'";
-    $result = $db->query($query);
-    if ($result->num_rows > 0) {
-      $row = $result->fetch_assoc();
-      return $row['userid'];
-    }
-
-   }
-
-
 //讲订单信息写入数据库
-   function insert_order($order_details,$userid){
+   function insert_order($order_details){
 
     extract($order_details);
 
@@ -635,31 +721,31 @@
 
     $db->autocommit(false);
 
-    $query = "select userid from customers where userid='".$userid."'";
+    $query = "select customerid from customers where name='".$name."' and address='".$address."' and city='".$city."'
+              and state='".$state."' and zip='".$zip."' and country='".$country."'";
 
     $result = $db->query($query);
 
     if ($result->num_rows > 0) {
       $row = $result->fetch_assoc();
-      $userid = $row['userid'];
+      $customerid = $row['customerid'];
     }else{
-
-      $query = "insert into customers values('".$userid."','".$name."','".$address."','".$city."','".$state."','".$zip."','".$country."')";
+      $query = "insert into customers values('','".$name."','".$address."','".$city."','".$state."','".$zip."','".$country."')";
       $result = $db->query($query);
       if (!$result) {
         echo "插入用户表失败";
-        return false;     
-        
+        exit();
+        return false;
       }
-      
+      $customerid = $db->insert_id;
     }
-    $date =date("Y-m-d H:i:s");
+    $date =date("Y-m-d");
 
-    $query = "insert into orders values('','".$userid."','".$_SESSION['total_price']."','".$date."','UNPAYED','".$ship_name."',
+    $query = "insert into orders values('','".$customerid."','".$_SESSION['total_price']."','".$date."','UNPAYED','".$ship_name."',
               '".$ship_address."','".$ship_city."','".$ship_state."','".$ship_zip."','".$ship_country."')";
     $result = $db->query($query);
     if (!$result) {
-      print_r($userid);
+      print_r($customerid);
       print_r($_SESSION['total_price']);
       print_r($date);
       print_r($ship_address);
@@ -668,6 +754,7 @@
       print_r($ship_zip);
       print_r($ship_country);
       echo "插入订单表失败";
+        exit();
       return false;
     }
     $orderid = $db->insert_id;
@@ -678,6 +765,7 @@
       $result = $db->query($query);
       if (!$result) {
         echo "删除订单商品表失败";
+        exit();
         return false;
       }
       $query = "insert into order_items values('".$orderid."','".$isbn."','".$book_details['price']."','".$qty."')";
@@ -685,6 +773,7 @@
       if (!$result) {
         print_r($orderid);
         echo "插入订单商品表失败";
+        exit();
         return false;
       }
     }
@@ -693,7 +782,7 @@
 
     $db->autocommit(true);
 
-    $order_info = array($userid,$orderid);
+    $order_info = array($customerid,$orderid);
 
     return $order_info;
 
@@ -726,8 +815,8 @@
    }
 
 
-   function check_valid_user(){
-    if (isset($_SESSION['valid_user'])) {
+   function check_admin_user(){
+    if (isset($_SESSION['admin_user'])) {
       return true;
     }else{
       do_html_header("出错了:");
@@ -756,7 +845,7 @@
     function filled_out($form_vars){ //验证注册表单是否填写完整
     foreach ($form_vars as $key => $value) {
       if (!isset($key) || $value == '') {
-        return flase;         
+        return false;         
       }
       return true;
     }
@@ -773,12 +862,25 @@
    }
 
 
-   function is_user($username,$password){
+   function is_admin($username,$password){
     $db = db_connect();
-    $query = "select username from users where username='".$username."' and password='".$password."'";
+    $query = "select username from admin where username='".$username."' and password='".$password."'";
     $result = $db->query($query);
     if ($result->num_rows > 0) {
       return true;
+    }else{
+      return false;
+    }
+   }
+
+
+   function find_username($userid){
+    $db = db_connect();
+    $query ="select username from users where userid='".$userid."'";
+    $result = $db->query($query);
+    if ($result->num_rows > 0) {
+      $row = $result->fetch_assoc();
+      return $row['username'];
     }else{
       return false;
     }

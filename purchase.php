@@ -22,8 +22,8 @@
 
   if (is_array($_SESSION['cart'])) {
   	if (($name) && ($address) && ($city) && ($state) && ($zip) && ($country)) {
-      if(insert_order($_POST) != false){
-      $order_info = insert_order($_POST);
+      $userid = find_userid($_SESSION['valid_user']);
+      if($order_info = insert_order($_POST,$userid)){
   	  display_cart($_SESSION['cart'],false,1,1);
   	  display_card_form($order_info);
       }else{

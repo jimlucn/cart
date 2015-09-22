@@ -1,26 +1,29 @@
 <?php
-  require_once 'functions.php';
+  require_once 'back_functions.php';
   session_start();
-
   $username = $_POST['username'];
   $password = $_POST['password'];
 
-  do_html_header('登录');
+  do_html_header('Rama网上书店管理系统');
 
-  if (!isset($_SESSION['valid_user'])) {
+  if ($_POST['submit']) {
 	  if (!filled_out($_POST)) {
 	  	do_html_url('login.php','请填写用户名和密码。');
 	  	exit();
 	  }
-	  if (is_user($username,$password)) {
-	  	$_SESSION['valid_user'] = $username;
-	  	do_html_url('index.php','登录成功,去购物');
+	  if (is_admin($username,$password)) {
+	  	$_SESSION['admin_user'] = $username;
 	  }else{
 	  	do_html_url('login.php','用户名或密码错误');
 	  	exit();
 	  }
 	}
 
-  do_html_footer();
+  check_admin_user();	
 
+  do_html_top();
+
+  display_admin_menu();
+
+  do_html_footer();
 ?>
